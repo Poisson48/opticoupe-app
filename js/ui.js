@@ -47,8 +47,10 @@ export function updateArea() {
 }
 
 // ─── Pieces ───────────────────────────────────────────────────────────────────
-export function addPiece(name='', w='', h='', qty=1, color=null) {
-  S.pieces.push({ id: S.nextId++, name, w, h, qty, color: color || PAL[S.pieces.length % PAL.length] });
+export function addPiece(name='', w='', h='', qty=1, color=null, paths=null) {
+  const p = { id: S.nextId++, name, w, h, qty, color: color || PAL[S.pieces.length % PAL.length] };
+  if (paths) p.paths = paths;
+  S.pieces.push(p);
   renderPiecesTable();
 }
 
@@ -79,7 +81,7 @@ export function syncPieces() {
 export function renderPiecesTable() {
   document.getElementById('pt-body').innerHTML = S.pieces.map(p => `
     <tr>
-      <td><span class="dot" style="background:${p.color}"></span></td>
+      <td><span class="dot" style="background:${p.color}${p.paths?';outline:2px solid #4fc3f7;outline-offset:1px':''}"></span></td>
       <td><input id="pn${p.id}" value="${esc(p.name)}" placeholder="${t('thName')}" style="width:68px"></td>
       <td><input id="pw${p.id}" type="number" value="${p.w}" min="1"></td>
       <td><input id="ph${p.id}" type="number" value="${p.h}" min="1"></td>

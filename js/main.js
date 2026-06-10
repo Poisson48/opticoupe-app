@@ -8,6 +8,7 @@ import { renderPresets, addCustomSize, deleteCustomSize, applyPreset, updateArea
          addEmptySheet, removeLastEmptySheet, showErr } from './ui.js';
 import { openTxtModal, saveTxtModal, closeTxtModal, refreshMatDescBtn, refreshCommentsBtn } from './modal.js';
 import { exportCSV, importCSVClick, onCSVFile } from './csv.js';
+import { importDXFClick, onDXFFiles } from './dxf.js';
 import { saveProject, loadProjectClick, onProjectFile, scheduleAutosave, autoload } from './project.js';
 import { exportBonDebit } from './bon.js';
 
@@ -82,7 +83,7 @@ document.addEventListener('keydown', e => {
 Object.assign(window, {
   setLang: switchLang, calculate,
   saveProject, loadProjectClick, onProjectFile,
-  exportBonDebit, exportCSV, importCSVClick, onCSVFile,
+  exportBonDebit, exportCSV, importCSVClick, onCSVFile, importDXFClick, onDXFFiles,
   addPiece, removePiece, clearPieces, loadExample,
   addCustomSize, deleteCustomSize, applyPreset,
   toggleOffcuts, addEmptySheet, removeLastEmptySheet,

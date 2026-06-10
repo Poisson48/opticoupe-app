@@ -31,7 +31,7 @@ function gatherProjectData() {
       kerf:    +document.getElementById('kerf').value,
       noRotate: document.getElementById('noRotate').checked,
     },
-    pieces: S.pieces.map(({ name, w, h, qty, color }) => ({ name, w, h, qty, color })),
+    pieces: S.pieces.map(({ name, w, h, qty, color, paths }) => ({ name, w, h, qty, color, paths: paths||null })),
     activeAlgo: S.activeAlgo,
     results: serializeResults(S.results),
     lang: S.lang,
@@ -102,7 +102,7 @@ function restoreProjectData(d) {
     updateArea();
   }
   clearPieces();
-  (d.pieces || []).forEach(p => addPiece(p.name||'', +p.w||0, +p.h||0, +p.qty||1, p.color));
+  (d.pieces || []).forEach(p => addPiece(p.name||'', +p.w||0, +p.h||0, +p.qty||1, p.color, p.paths||null));
 
   if (d.results && Object.keys(d.results).length) {
     S.results = deserializeResults(d.results);
@@ -135,7 +135,7 @@ export function serializeResults(res) {
           freeRects: frs,
           placements: sh.placements.map(pl => ({
             x:pl.x, y:pl.y, w:pl.w, h:pl.h, rotated:!!pl.rotated,
-            piece: { id:pl.piece.id, name:pl.piece.name, color:pl.piece.color, origW:pl.piece.origW, origH:pl.piece.origH },
+            piece: { id:pl.piece.id, name:pl.piece.name, color:pl.piece.color, origW:pl.piece.origW, origH:pl.piece.origH, paths:pl.piece.paths||null },
           })),
         };
       }),

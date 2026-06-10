@@ -102,8 +102,10 @@
       <button class="btn btn-sec btn-sm" onclick="window.clearPieces()" id="btn-clear">Vider</button>
     </div>
     <div class="btn-group" style="margin-top:5px">
+      <button class="btn btn-sec btn-sm" onclick="window.importDXFClick()" id="btn-dxf-in">⬆ Import DXF</button>
       <button class="btn btn-sec btn-sm" onclick="window.importCSVClick()" id="btn-csv-in">⬆ Import CSV</button>
       <button class="btn btn-sec btn-sm" onclick="window.exportCSV()"      id="btn-csv-out">⬇ Export CSV</button>
+      <input type="file" id="dxf-input" accept=".dxf" multiple style="display:none" onchange="window.onDXFFiles(event)">
       <input type="file" id="csv-input" accept=".csv" style="display:none" onchange="window.onCSVFile(event)">
     </div>
   </div>

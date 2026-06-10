@@ -59,12 +59,15 @@ export function drawPanel(canvas, sheet, panelW, panelH, kerf, drag, hoverIdx=-1
     const isFlash = flashIdx === i;
     const pw = Math.max(0, (pl.w-kerf)*sc), ph = Math.max(0, (pl.h-kerf)*sc);
     const px = CM+pl.x*sc, py = CM+pl.y*sc;
+    const hasPaths = !!pl.piece.paths?.length;
+    const invalid  = (isDrag && !drag.valid) || isFlash;
     ctx.save();
     if (isDrag) ctx.globalAlpha = drag.ghost ? 0.22 : (drag.valid ? 0.82 : 0.55);
-    ctx.fillStyle  = (isDrag && !drag.valid) || isFlash ? 'rgba(233,69,96,.55)' : pl.piece.color+'bb';
-    ctx.strokeStyle= (isDrag && !drag.valid) || isFlash ? '#e94560'              : pl.piece.color;
+    ctx.fillStyle   = invalid ? 'rgba(233,69,96,.55)' : (hasPaths ? pl.piece.color+'22' : pl.piece.color+'bb');
+    ctx.strokeStyle = invalid ? '#e94560' : pl.piece.color;
     ctx.lineWidth = 1.5;
     ctx.beginPath(); ctx.roundRect(px, py, pw, ph, 2); ctx.fill(); ctx.stroke();
+    if (hasPaths) _drawPaths(ctx, px, py, pw, ph, pl, invalid ? '#e94560' : pl.piece.color);
     const dw = pl.rotated ? pl.piece.origH : pl.piece.origW;
     const dh = pl.rotated ? pl.piece.origW : pl.piece.origH;
     drawPieceLabel(ctx, px, py, pw, ph, pl.piece.name||'', dw, dh, pl.rotated);
@@ -75,14 +78,16 @@ export function drawPanel(canvas, sheet, panelW, panelH, kerf, drag, hoverIdx=-1
   if (ghostPl) {
     const gpw = Math.max(0, (ghostPl.w-kerf)*sc), gph = Math.max(0, (ghostPl.h-kerf)*sc);
     const gpx = CM+ghostPl.x*sc, gpy = CM+ghostPl.y*sc;
+    const ghostCol = ghostPl.valid ? ghostPl.piece.color : '#e94560';
     ctx.save();
     ctx.globalAlpha = ghostPl.valid ? 0.65 : 0.35;
-    ctx.fillStyle   = ghostPl.piece.color + 'bb';
-    ctx.strokeStyle = ghostPl.valid ? ghostPl.piece.color : '#e94560';
+    ctx.fillStyle   = ghostPl.piece.paths?.length ? ghostPl.piece.color+'22' : ghostPl.piece.color+'bb';
+    ctx.strokeStyle = ghostCol;
     ctx.lineWidth = ghostPl.valid ? 1.5 : 2;
     if (!ghostPl.valid) ctx.setLineDash([4, 3]);
     ctx.beginPath(); ctx.roundRect(gpx, gpy, gpw, gph, 2); ctx.fill(); ctx.stroke();
     ctx.setLineDash([]);
+    if (ghostPl.piece.paths?.length) _drawPaths(ctx, gpx, gpy, gpw, gph, ghostPl, ghostCol);
     const gdw = ghostPl.rotated ? ghostPl.piece.origH : ghostPl.piece.origW;
     const gdh = ghostPl.rotated ? ghostPl.piece.origW : ghostPl.piece.origH;
     drawPieceLabel(ctx, gpx, gpy, gpw, gph, ghostPl.piece.name||'', gdw, gdh, ghostPl.rotated);
@@ -144,4 +149,27 @@ function fitText(ctx, text, maxW) {
   if (ctx.measureText(text).width <= maxW) return text;
   while (text.length > 1 && ctx.measureText(text+'…').width > maxW) text = text.slice(0,-1);
   return text.length > 1 ? text+'…' : text;
+}
+
+// Draw DXF paths (normalized [0,1]×[0,1]) inside a placed piece rectangle.
+// Handles 90° CW rotation: (nx, ny) → (1-ny, nx) in the new space.
+function _drawPaths(ctx, px, py, pw, ph, pl, strokeCol) {
+  const paths = pl.piece.paths;
+  ctx.save();
+  ctx.beginPath(); ctx.rect(px+1, py+1, Math.max(0, pw-2), Math.max(0, ph-2)); ctx.clip();
+  ctx.strokeStyle = strokeCol;
+  ctx.lineWidth   = Math.max(1, Math.min(1.5, pw / 80));
+  for (const { pts, closed } of paths) {
+    if (pts.length < 2) continue;
+    ctx.beginPath();
+    for (let i = 0; i < pts.length; i++) {
+      const [nx, ny] = pts[i];
+      const cx = pl.rotated ? px + (1-ny)*pw : px + nx*pw;
+      const cy = pl.rotated ? py + nx*ph     : py + ny*ph;
+      i === 0 ? ctx.moveTo(cx, cy) : ctx.lineTo(cx, cy);
+    }
+    if (closed) ctx.closePath();
+    ctx.stroke();
+  }
+  ctx.restore();
 }
