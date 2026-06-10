@@ -115,12 +115,17 @@ header .htools{margin-left:auto;display:flex;align-items:center;gap:6px;flex-wra
     <div class="row3">
       <div class="f"><label id="l-mat">Matériau</label>
         <select id="proj-mat">
-          <option>Mélaminé</option><option>MDF</option><option>Contreplaqué</option>
-          <option>Aggloméré</option><option>OSB</option><option>Massif</option><option>Autre</option>
+          <option value="Mélaminé">Mélaminé</option><option value="MDF">MDF</option>
+          <option value="Contreplaqué">Contreplaqué</option><option value="Aggloméré">Aggloméré</option>
+          <option value="OSB">OSB</option><option value="Massif">Massif</option><option value="Autre">Autre</option>
         </select>
       </div>
       <div class="f"><label id="l-thick">Ép. (mm)</label><input type="number" id="proj-thick" value="18" min="1" max="100"></div>
       <div class="f"><label id="l-color">Finition</label><input id="proj-finish" placeholder="Blanc..."></div>
+    </div>
+    <div class="row2">
+      <div class="f"><label id="l-mat-desc">Description matériau</label><input id="proj-mat-desc" placeholder="Mélaminé blanc 2 faces..."></div>
+      <div class="f"><label id="l-mat-url">Lien produit (URL)</label><input id="proj-mat-url" type="url" placeholder="https://..."></div>
     </div>
   </div>
 
@@ -427,6 +432,8 @@ function saveProject(){
       material:document.getElementById('proj-mat').value,
       thickness:+document.getElementById('proj-thick').value,
       finish:document.getElementById('proj-finish').value,
+      matDesc:document.getElementById('proj-mat-desc').value,
+      matUrl:document.getElementById('proj-mat-url').value,
     },
     panel:{w:+document.getElementById('pW').value, h:+document.getElementById('pH').value,
            kerf:+document.getElementById('kerf').value, noRotate:document.getElementById('noRotate').checked},
@@ -442,31 +449,45 @@ function onProjectFile(e){
   const r=new FileReader();
   r.onload=ev=>{
     try{
-      const d=JSON.parse(ev.target.result);
+      const raw=ev.target.result;
+      if(!raw||!raw.trim()) throw new Error('Fichier vide');
+      const d=JSON.parse(raw);
+      if(!d.pieces&&!d.panel) throw new Error('Format non reconnu');
       // Project fields
       if(d.project){
         document.getElementById('proj-name').value=d.project.name||'';
         document.getElementById('proj-client').value=d.project.client||'';
-        document.getElementById('proj-mat').value=d.project.material||'Mélaminé';
+        // Set material — fallback gracefully if value not in list
+        const sel=document.getElementById('proj-mat');
+        const mat=d.project.material||'Mélaminé';
+        const opt=[...sel.options].find(o=>o.value===mat||o.text===mat);
+        sel.value=opt?mat:'Mélaminé';
         document.getElementById('proj-thick').value=d.project.thickness||18;
         document.getElementById('proj-finish').value=d.project.finish||'';
+        document.getElementById('proj-mat-desc').value=d.project.matDesc||'';
+        document.getElementById('proj-mat-url').value=d.project.matUrl||'';
       }
       // Panel
       if(d.panel){
         document.getElementById('pW').value=d.panel.w||2440;
         document.getElementById('pH').value=d.panel.h||1220;
-        document.getElementById('kerf').value=d.panel.kerf||3;
+        document.getElementById('kerf').value=d.panel.kerf!=null?d.panel.kerf:3;
         document.getElementById('noRotate').checked=!!d.panel.noRotate;
         updateArea();
       }
       // Pieces
       pieces=[]; nextId=1;
       (d.pieces||[]).forEach(p=>{
-        pieces.push({id:nextId++,name:p.name,w:p.w,h:p.h,qty:p.qty,color:p.color||PAL[pieces.length%PAL.length]});
+        pieces.push({id:nextId++,name:p.name||'',w:+p.w||0,h:+p.h||0,qty:+p.qty||1,
+          color:p.color||PAL[pieces.length%PAL.length]});
       });
       renderPiecesTable();
-      if(d.lang) setLang(d.lang);
-    }catch{alert('Fichier invalide / Invalid file');}
+      if(d.lang&&(d.lang==='fr'||d.lang==='en')) setLang(d.lang);
+      showErr('calc-err',''); document.getElementById('calc-err').style.display='none';
+    }catch(err){
+      showErr('calc-err', `Erreur import : ${err.message}`);
+      document.getElementById('calc-err').style.display='block';
+    }
     e.target.value='';
   };
   r.readAsText(f);
@@ -1028,6 +1049,8 @@ function exportBonDebit(){
     material:document.getElementById('proj-mat').value,
     thickness:document.getElementById('proj-thick').value,
     finish:document.getElementById('proj-finish').value,
+    matDesc:document.getElementById('proj-mat-desc').value,
+    matUrl:document.getElementById('proj-mat-url').value,
   };
   const st=calcStats(r.sheets,panelW,panelH,kerf);
   const date=new Date().toLocaleDateString(lang==='fr'?'fr-FR':'en-GB');
@@ -1135,9 +1158,10 @@ function exportBonDebit(){
     <div class="lbl">${t('projet')}</div>
     <div class="info-row"><span class="k">${t('projname')}</span><span class="v">${proj.name}</span></div>
     <div class="info-row"><span class="k">${t('client')}</span><span class="v">${proj.client}</span></div>
-    <div class="info-row"><span class="k">${t('mat')}</span><span class="v">${proj.material}</span></div>
+    <div class="info-row"><span class="k">${t('mat')}</span><span class="v">${proj.material}${proj.finish?' — '+proj.finish:''}</span></div>
+    ${proj.matDesc?`<div class="info-row"><span class="k">Description</span><span class="v">${proj.matDesc}</span></div>`:''}
+    ${proj.matUrl?`<div class="info-row"><span class="k">Référence</span><span class="v"><a href="${proj.matUrl}" style="color:#c0392b;word-break:break-all">${proj.matUrl}</a></span></div>`:''}
     <div class="info-row"><span class="k">${t('thick')}</span><span class="v">${proj.thickness} mm</span></div>
-    ${proj.finish?`<div class="info-row"><span class="k">${t('color')}</span><span class="v">${proj.finish}</span></div>`:''}
   </div>
   <div class="info-box">
     <div class="lbl">${t('panel')}</div>
