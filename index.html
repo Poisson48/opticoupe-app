@@ -422,10 +422,65 @@ function onCSVFile(e){
 }
 
 // ─── Project save / load ──────────────────────────────────────────────────────
+// ─── Sérialisation des résultats ─────────────────────────────────────────────
+function serializeResults(res) {
+  const out = {};
+  for (const [key, r] of Object.entries(res)) {
+    if (!r || r.error || !r.sheets) continue;
+    out[key] = {
+      sheets: r.sheets.map(sh => {
+        // freeRects peut être un getter (ShelfPacker) ou un tableau direct
+        let frs = [];
+        try { frs = [...(sh.freeRects || [])]; } catch(e) {}
+        return {
+          W: sh.W, H: sh.H,
+          usedArea: sh.usedArea || 0,
+          _edited: sh._edited || false,
+          freeRects: frs,
+          placements: sh.placements.map(pl => ({
+            x: pl.x, y: pl.y, w: pl.w, h: pl.h,
+            rotated: !!pl.rotated,
+            piece: {
+              id:    pl.piece.id,
+              name:  pl.piece.name,
+              color: pl.piece.color,
+              origW: pl.piece.origW,
+              origH: pl.piece.origH,
+            }
+          }))
+        };
+      })
+    };
+  }
+  return out;
+}
+
+function deserializeResults(saved) {
+  if (!saved) return {};
+  const out = {};
+  for (const [key, r] of Object.entries(saved)) {
+    if (!r || !r.sheets) continue;
+    out[key] = {
+      sheets: r.sheets.map(sh => ({
+        W: sh.W, H: sh.H,
+        usedArea: sh.usedArea || 0,
+        _edited: sh._edited || false,
+        freeRects: sh.freeRects || [],
+        placements: (sh.placements || []).map(pl => ({
+          ...pl,
+          piece: { ...pl.piece }
+        })),
+        get efficiency() { return this.W && this.H ? (this.usedArea / (this.W * this.H)) * 100 : 0; }
+      }))
+    };
+  }
+  return out;
+}
+
 function saveProject(){
   syncPieces();
   const data={
-    version:'1.1',
+    version:'1.2',
     project:{
       name:document.getElementById('proj-name').value,
       client:document.getElementById('proj-client').value,
@@ -438,26 +493,29 @@ function saveProject(){
     panel:{w:+document.getElementById('pW').value, h:+document.getElementById('pH').value,
            kerf:+document.getElementById('kerf').value, noRotate:document.getElementById('noRotate').checked},
     pieces:pieces.map(({id,name,w,h,qty,color})=>({name,w,h,qty,color})),
+    activeAlgo,
+    results: serializeResults(results),
     lang
   };
   const name=document.getElementById('proj-name').value||'decoupe';
   dl(JSON.stringify(data,null,2),`${name.replace(/\s+/g,'_')}.json`,'application/json');
 }
+
 function loadProjectClick(){document.getElementById('proj-input').click();}
 function onProjectFile(e){
   const f=e.target.files[0]; if(!f) return;
-  const r=new FileReader();
-  r.onload=ev=>{
+  const reader=new FileReader();
+  reader.onload=ev=>{
     try{
       const raw=ev.target.result;
       if(!raw||!raw.trim()) throw new Error('Fichier vide');
       const d=JSON.parse(raw);
       if(!d.pieces&&!d.panel) throw new Error('Format non reconnu');
+
       // Project fields
       if(d.project){
         document.getElementById('proj-name').value=d.project.name||'';
         document.getElementById('proj-client').value=d.project.client||'';
-        // Set material — fallback gracefully if value not in list
         const sel=document.getElementById('proj-mat');
         const mat=d.project.material||'Mélaminé';
         const opt=[...sel.options].find(o=>o.value===mat||o.text===mat);
@@ -467,6 +525,7 @@ function onProjectFile(e){
         document.getElementById('proj-mat-desc').value=d.project.matDesc||'';
         document.getElementById('proj-mat-url').value=d.project.matUrl||'';
       }
+
       // Panel
       if(d.panel){
         document.getElementById('pW').value=d.panel.w||2440;
@@ -475,6 +534,7 @@ function onProjectFile(e){
         document.getElementById('noRotate').checked=!!d.panel.noRotate;
         updateArea();
       }
+
       // Pieces
       pieces=[]; nextId=1;
       (d.pieces||[]).forEach(p=>{
@@ -482,15 +542,32 @@ function onProjectFile(e){
           color:p.color||PAL[pieces.length%PAL.length]});
       });
       renderPiecesTable();
+
+      // Résultats (layout + positions custom)
+      if(d.results && Object.keys(d.results).length){
+        results=deserializeResults(d.results);
+        const pw=+document.getElementById('pW').value;
+        const ph=+document.getElementById('pH').value;
+        const kf=+document.getElementById('kerf').value||0;
+        cachedPanel={w:pw,h:ph,kerf:kf};
+        if(d.activeAlgo && results[d.activeAlgo]) activeAlgo=d.activeAlgo;
+        document.getElementById('empty-state').style.display='none';
+        const ra=document.getElementById('results-area');
+        ra.style.display='flex'; ra.style.flexDirection='column';
+        document.getElementById('h-export').style.display='';
+        renderTabs(pw,ph,kf);
+        renderAlgoResult(activeAlgo,pw,ph,kf);
+      }
+
       if(d.lang&&(d.lang==='fr'||d.lang==='en')) setLang(d.lang);
-      showErr('calc-err',''); document.getElementById('calc-err').style.display='none';
+      document.getElementById('calc-err').style.display='none';
     }catch(err){
-      showErr('calc-err', `Erreur import : ${err.message}`);
+      showErr('calc-err',`Erreur import : ${err.message}`);
       document.getElementById('calc-err').style.display='block';
     }
     e.target.value='';
   };
-  r.readAsText(f);
+  reader.readAsText(f);
 }
 function dl(content,filename,mime){
   const a=document.createElement('a');
