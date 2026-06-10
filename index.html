@@ -697,6 +697,15 @@ function calcStats(sheets,panelW,panelH,kerf){
 
 // ─── Calculate ────────────────────────────────────────────────────────────────
 function calculate(){
+  // Warn if manual edits or extra panels exist
+  const hasEdits=Object.values(results).some(r=>r.sheets&&r.sheets.some(s=>s._edited));
+  const hasExtra=Object.values(results).some(r=>r.sheets&&r.sheets.some(s=>s.placements.length===0));
+  if((hasEdits||hasExtra)&&Object.keys(results).length>0){
+    const msg=lang==='fr'
+      ?'Recalculer va effacer vos modifications manuelles (déplacements, rotations, panneaux ajoutés). Continuer ?'
+      :'Recalculating will erase your manual changes (moves, rotations, added sheets). Continue?';
+    if(!confirm(msg)) return;
+  }
   syncPieces();
   document.getElementById('calc-err').style.display='none';
   const panelW=+document.getElementById('pW').value;
@@ -765,12 +774,16 @@ function renderAlgoResult(key,panelW,panelH,kerf){
     <div class="stat green"><div class="v">${big}</div><div class="l">${t('statBig')}</div></div>
   </div>`;
 
+  const emptyCount=r.sheets.filter(s=>s.placements.length===0).length;
   html+=`<div class="ctrl-bar">
     <span class="lbl">${t('showOffcuts')}</span>
     <button class="btn btn-sm ${showOffcuts?'btn-primary':'btn-sec'}" onclick="toggleOffcuts('${key}',${panelW},${panelH},${kerf})">
       ${showOffcuts?t('hideOffcuts'):t('shownOffcuts')}
     </button>
-    <span class="lbl" style="margin-left:6px;font-size:.65rem">${t('dragHint')} · ${lang==='fr'?'↻ ou clic droit pour pivoter':'↻ or right-click to rotate'}</span>
+    <span class="lbl" style="margin-left:10px">${lang==='fr'?'Panneaux :':'Sheets:'}</span>
+    <button class="btn btn-sec btn-sm" onclick="addEmptySheet('${key}',${panelW},${panelH},${kerf})" title="${lang==='fr'?'Ajouter un panneau vide (chute)':'Add empty sheet (offcut)'}">+ ${lang==='fr'?'Panneau':'Sheet'}</button>
+    ${emptyCount>0?`<button class="btn btn-danger btn-sm" onclick="removeLastEmptySheet('${key}',${panelW},${panelH},${kerf})" title="${lang==='fr'?'Retirer le dernier panneau vide':'Remove last empty sheet'}">− ${lang==='fr'?'Panneau':'Sheet'}</button>`:''}
+    <span class="lbl" style="margin-left:auto;font-size:.63rem">${t('dragHint')} · ${lang==='fr'?'↻ clic droit = pivoter':'↻ right-click = rotate'}</span>
   </div>`;
 
   const seen=new Map();
@@ -795,6 +808,32 @@ function renderAlgoResult(key,panelW,panelH,kerf){
 }
 function toggleOffcuts(key,panelW,panelH,kerf){
   showOffcuts=!showOffcuts;
+  renderAlgoResult(key,panelW,panelH,kerf);
+}
+
+function makeEmptySheet(panelW,panelH,kerf){
+  const W=panelW+kerf, H=panelH+kerf;
+  return {
+    W, H,
+    placements: [],
+    freeRects: [{x:0,y:0,w:W,h:H}],
+    usedArea: 0,
+    _edited: false,
+    get efficiency(){ return 0; }
+  };
+}
+
+function addEmptySheet(key,panelW,panelH,kerf){
+  results[key].sheets.push(makeEmptySheet(panelW,panelH,kerf));
+  renderAlgoResult(key,panelW,panelH,kerf);
+}
+
+function removeLastEmptySheet(key,panelW,panelH,kerf){
+  const sheets=results[key].sheets;
+  // Only remove the last sheet if it has no pieces
+  for(let i=sheets.length-1;i>=0;i--){
+    if(sheets[i].placements.length===0){ sheets.splice(i,1); break; }
+  }
   renderAlgoResult(key,panelW,panelH,kerf);
 }
 
@@ -955,19 +994,14 @@ function setupDrag(canvas,sheet,panelW,panelH,kerf){
   // Try to rotate piece at idx 90°; flash red if impossible
   const rotatePiece=(idx)=>{
     const pl=sheet.placements[idx];
-    const nw=pl.h, nh=pl.w; // swap dimensions
-    const fits=noOverlap(idx,pl.x,pl.y)&&(pl.x+nw<=sheet.W)&&(pl.y+nh<=sheet.H)
-      &&!sheet.placements.some((o,i)=>i!==idx&&pl.x<o.x+o.w&&pl.x+nw>o.x&&pl.y<o.y+o.h&&pl.y+nh>o.y);
-    if(fits){
-      pl.w=nw; pl.h=nh; pl.rotated=!pl.rotated;
-      sheet._edited=true;
-      drawPanel(canvas,sheet,panelW,panelH,kerf,null,hoverIdx);
-    } else {
-      // Flash red
-      if(flashTimer) clearTimeout(flashTimer);
-      drawPanel(canvas,sheet,panelW,panelH,kerf,null,-1,idx);
-      flashTimer=setTimeout(()=>drawPanel(canvas,sheet,panelW,panelH,kerf,null,hoverIdx),380);
-    }
+    // Always rotate — user can drag to a valid position afterwards
+    [pl.w, pl.h] = [pl.h, pl.w];
+    pl.rotated = !pl.rotated;
+    // Clamp within panel so piece stays reachable
+    pl.x = Math.max(0, Math.min(sheet.W - pl.w, pl.x));
+    pl.y = Math.max(0, Math.min(sheet.H - pl.h, pl.y));
+    sheet._edited = true;
+    drawPanel(canvas, sheet, panelW, panelH, kerf, null, hoverIdx);
   };
 
   // Right-click → rotate
