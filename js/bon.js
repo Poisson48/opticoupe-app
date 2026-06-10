@@ -178,27 +178,12 @@ ${panelBreakdown.map(({ si, rows, eff }, i) => `
   const blob = new Blob([html], { type: 'text/html' });
   const url  = URL.createObjectURL(blob);
 
-  const ov = document.createElement('div');
-  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:2000;display:flex;flex-direction:column';
-
-  const bar = document.createElement('div');
-  bar.style.cssText = 'background:#1c1f2b;border-bottom:1px solid #323754;padding:8px 16px;display:flex;align-items:center;gap:8px;flex-shrink:0';
-  bar.innerHTML = `
-    <span style="color:#e8eaf0;font-weight:700;font-size:.85rem">${t('bonTitle')}</span>
-    <div style="margin-left:auto;display:flex;gap:6px">
-      <button id="_bon_print" class="btn btn-primary btn-sm">🖨 ${S.lang === 'fr' ? 'Imprimer / PDF' : 'Print / PDF'}</button>
-      <button id="_bon_close" class="btn btn-sec btn-sm">✕ ${S.lang === 'fr' ? 'Fermer' : 'Close'}</button>
-    </div>`;
-
   const fr = document.createElement('iframe');
+  fr.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:1px;height:1px';
   fr.src = url;
-  fr.style.cssText = 'flex:1;border:none;background:#fff';
-
-  ov.append(bar, fr);
-  document.body.appendChild(ov);
-
-  const close = () => { document.body.removeChild(ov); URL.revokeObjectURL(url); };
-  bar.querySelector('#_bon_print').addEventListener('click', () => fr.contentWindow?.print());
-  bar.querySelector('#_bon_close').addEventListener('click', close);
-  ov.addEventListener('click', e => { if (e.target === ov) close(); });
+  document.body.appendChild(fr);
+  fr.addEventListener('load', () => {
+    fr.contentWindow.print();
+    setTimeout(() => { document.body.removeChild(fr); URL.revokeObjectURL(url); }, 1000);
+  });
 }
