@@ -87,6 +87,13 @@ header .htools{margin-left:auto;display:flex;align-items:center;gap:6px;flex-wra
 ::-webkit-scrollbar-track{background:var(--bg)}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 ::-webkit-scrollbar-thumb:hover{background:var(--acc)}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:1000;display:flex;align-items:center;justify-content:center}
+.modal-box{background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:16px;width:min(520px,92vw);display:flex;flex-direction:column;gap:10px}
+.modal-hdr{display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:.85rem}
+.modal-ta{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--txt);padding:8px;font-size:.82rem;resize:vertical;min-height:120px;font-family:inherit;line-height:1.5}
+.modal-ta:focus{outline:none;border-color:var(--acc)}
+.btn-field{background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--dim);padding:5px 7px;font-size:.78rem;text-align:left;cursor:pointer;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;width:100%;display:block}
+.btn-field:hover{border-color:var(--acc2);color:var(--txt)}
 </style>
 </head>
 <body>
@@ -124,8 +131,16 @@ header .htools{margin-left:auto;display:flex;align-items:center;gap:6px;flex-wra
       <div class="f"><label id="l-color">Finition</label><input id="proj-finish" placeholder="Blanc..."></div>
     </div>
     <div class="row2">
-      <div class="f"><label id="l-mat-desc">Description matériau</label><input id="proj-mat-desc" placeholder="Mélaminé blanc 2 faces..."></div>
+      <div class="f"><label id="l-mat-desc">Description matériau</label>
+        <button class="btn-field" id="btn-mat-desc" onclick="openTxtModal('matDesc','proj-mat-desc',refreshMatDescBtn)"><span id="mat-desc-preview"></span></button>
+        <input id="proj-mat-desc" type="hidden" value="">
+      </div>
       <div class="f"><label id="l-mat-url">Lien produit (URL)</label><input id="proj-mat-url" type="url" placeholder="https://..."></div>
+    </div>
+    <div class="f" style="margin-top:4px">
+      <label id="l-comments">Commentaires bon de débit</label>
+      <button class="btn-field" id="btn-comments" onclick="openTxtModal('comments','proj-comments',refreshCommentsBtn)"><span id="comments-preview"></span></button>
+      <input id="proj-comments" type="hidden" value="">
     </div>
   </div>
 
@@ -196,6 +211,20 @@ header .htools{margin-left:auto;display:flex;align-items:center;gap:6px;flex-wra
 
 <div id="tip"></div>
 
+<div id="txt-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeTxtModal()">
+  <div class="modal-box">
+    <div class="modal-hdr">
+      <span id="modal-title"></span>
+      <button class="btn btn-sec btn-sm" onclick="closeTxtModal()">✕</button>
+    </div>
+    <textarea id="modal-ta" class="modal-ta" rows="8"></textarea>
+    <div style="display:flex;justify-content:flex-end;gap:6px">
+      <button class="btn btn-sec btn-sm" id="modal-cancel" onclick="closeTxtModal()">Annuler</button>
+      <button class="btn btn-primary btn-sm" id="modal-ok" onclick="saveTxtModal()">OK</button>
+    </div>
+  </div>
+</div>
+
 <script>
 'use strict';
 
@@ -226,15 +255,18 @@ const T = {
     errNoPieces:'Ajoutez au moins une pièce avec des dimensions valides.',
     errPanel:'Dimensions du panneau invalides.',
     tipOffcut:'Chute :',
+    lMatDesc:'Description matériau', lMatUrl:'Lien produit (URL)', lComments:'Commentaires bon de débit',
+    matDesc:'Description matériau', comments:'Commentaires',
+    matDescEmpty:'Cliquer pour ajouter une description...', commentsEmpty:'Cliquer pour ajouter des commentaires...',
     // Bon de débit
     bonTitle:'BON DE DÉBIT', bonDate:'Date :', bonRef:'Réf. :', bonMat:'Matériau :',
     bonThick:'Épaisseur :', bonPanel:'Panneau :', bonQtyPanels:'Panneaux nécessaires :',
     bonKerf:'Trait de scie :', bonEff:'Rendement global :',
     bonListTitle:'Liste des pièces', bonPlanTitle:'Plans de coupe',
     bonNum:'N°', bonName:'Désignation', bonL:'Longueur', bonW:'Largeur',
-    bonThk:'Ép.', bonQty:'Qté', bonObs:'Observations',
-    bonPanelLabel:'Panneau', bonScierie:'Document à remettre à votre scierie',
-    bonFooter:'Généré par Optimisation Découpe Bois',
+    bonThk:'Ép.', bonQty:'Qté', bonObs:'Observations', bonComments:'Commentaires',
+    bonPanelLabel:'Panneau', bonRotated:'Pivoté', bonScierie:'Document à remettre à votre scierie',
+    bonFooter:'Généré par OptiCoupe',
   },
   en:{
     title:'OptiCoupe',
@@ -261,14 +293,17 @@ const T = {
     errNoPieces:'Add at least one piece with valid dimensions.',
     errPanel:'Invalid sheet dimensions.',
     tipOffcut:'Offcut:',
+    lMatDesc:'Material description', lMatUrl:'Product link (URL)', lComments:'Cutting order notes',
+    matDesc:'Material description', comments:'Notes',
+    matDescEmpty:'Click to add a description...', commentsEmpty:'Click to add notes...',
     bonTitle:'CUTTING ORDER', bonDate:'Date:', bonRef:'Ref.:', bonMat:'Material:',
     bonThick:'Thickness:', bonPanel:'Sheet:', bonQtyPanels:'Sheets needed:',
     bonKerf:'Blade kerf:', bonEff:'Overall efficiency:',
     bonListTitle:'Piece list', bonPlanTitle:'Cutting layouts',
     bonNum:'#', bonName:'Description', bonL:'Length', bonW:'Width',
-    bonThk:'Thk', bonQty:'Qty', bonObs:'Notes',
-    bonPanelLabel:'Sheet', bonScierie:'Document to submit to your cutting service',
-    bonFooter:'Generated by Wood Cutting Optimizer',
+    bonThk:'Thk', bonQty:'Qty', bonObs:'Notes', bonComments:'Notes',
+    bonPanelLabel:'Sheet', bonRotated:'Rotated', bonScierie:'Document to submit to your cutting service',
+    bonFooter:'Generated by OptiCoupe',
   }
 };
 let lang='fr';
@@ -286,6 +321,7 @@ function applyLang(){
     'h-title':'title','h-save':'save','h-load':'load','h-export':'export',
     's-projet':'projet','s-panel':'panel','s-pieces':'pieces',
     'l-projname':'projname','l-client':'client','l-mat':'mat','l-thick':'thick','l-color':'color',
+    'l-mat-desc':'lMatDesc','l-mat-url':'lMatUrl','l-comments':'lComments',
     'l-pw':'pw','l-ph':'ph','l-kerf':'kerf','l-area':'area','l-grain':'grain',
     'th-name':'thName','th-l':'thL','th-h':'thH','th-q':'thQ',
     'btn-add':'addPiece','btn-ex':'example','btn-clear':'clear',
@@ -297,7 +333,9 @@ function applyLang(){
     if(el) el.textContent=t(key);
   }
   document.getElementById('empty-msg').innerHTML=t('emptyMsg');
+  document.getElementById('modal-cancel').textContent=lang==='fr'?'Annuler':'Cancel';
   document.documentElement.lang=lang;
+  refreshMatDescBtn(); refreshCommentsBtn();
   // Re-render dynamic parts if results exist
   if(Object.keys(results).length) renderTabs(cachedPanel.w, cachedPanel.h, cachedPanel.kerf);
   const rw=document.getElementById('results-wrap');
@@ -399,10 +437,11 @@ function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').repl
 // ─── CSV ──────────────────────────────────────────────────────────────────────
 function exportCSV(){
   syncPieces();
+  const panelLine=`PANEL,${document.getElementById('pW').value},${document.getElementById('pH').value},${document.getElementById('kerf').value}`;
   const hdr=lang==='fr'
     ?'Nom,Largeur (mm),Hauteur (mm),Quantité'
     :'Name,Width (mm),Height (mm),Quantity';
-  const rows=[hdr,...pieces.map(p=>`"${p.name}",${p.w},${p.h},${p.qty}`)];
+  const rows=[panelLine,hdr,...pieces.map(p=>`"${p.name}",${p.w},${p.h},${p.qty}`)];
   dl(rows.join('\n'),'pieces_decoupe.csv','text/csv');
 }
 function importCSVClick(){document.getElementById('csv-input').click();}
@@ -410,11 +449,21 @@ function onCSVFile(e){
   const f=e.target.files[0]; if(!f) return;
   const r=new FileReader();
   r.onload=ev=>{
-    const lines=ev.target.result.trim().split('\n').slice(1);
+    const lines=ev.target.result.trim().split('\n');
+    let headerIdx=0;
+    for(let i=0;i<Math.min(3,lines.length);i++){
+      const m=lines[i].match(/^PANEL\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*(\d+(?:\.\d+)?))?/i);
+      if(m){
+        document.getElementById('pW').value=m[1];
+        document.getElementById('pH').value=m[2];
+        if(m[3]!=null) document.getElementById('kerf').value=m[3];
+        updateArea(); headerIdx=i+1; break;
+      }
+    }
     clearPieces();
-    lines.forEach(line=>{
+    lines.slice(headerIdx+1).forEach(line=>{
       const cols=line.split(',').map(c=>c.replace(/^"|"$/g,'').trim());
-      if(cols.length>=3) addPiece(cols[0],parseFloat(cols[1])||0,parseFloat(cols[2])||0,parseInt(cols[3])||1);
+      if(cols.length>=3&&cols[0]) addPiece(cols[0],parseFloat(cols[1])||0,parseFloat(cols[2])||0,parseInt(cols[3])||1);
     });
     e.target.value='';
   };
@@ -489,6 +538,7 @@ function saveProject(){
       finish:document.getElementById('proj-finish').value,
       matDesc:document.getElementById('proj-mat-desc').value,
       matUrl:document.getElementById('proj-mat-url').value,
+      comments:document.getElementById('proj-comments').value,
     },
     panel:{w:+document.getElementById('pW').value, h:+document.getElementById('pH').value,
            kerf:+document.getElementById('kerf').value, noRotate:document.getElementById('noRotate').checked},
@@ -524,6 +574,8 @@ function onProjectFile(e){
         document.getElementById('proj-finish').value=d.project.finish||'';
         document.getElementById('proj-mat-desc').value=d.project.matDesc||'';
         document.getElementById('proj-mat-url').value=d.project.matUrl||'';
+        document.getElementById('proj-comments').value=d.project.comments||'';
+        refreshMatDescBtn(); refreshCommentsBtn();
       }
 
       // Panel
@@ -880,7 +932,7 @@ function renderAlgoResult(key,panelW,panelH,kerf){
     card.appendChild(canvas);
     document.getElementById('panels-grid').appendChild(card);
     drawPanel(canvas,sheet,panelW,panelH,kerf,null,-1);
-    setupDrag(canvas,sheet,panelW,panelH,kerf);
+    setupDrag(canvas,sheet,panelW,panelH,kerf,key,i);
   });
 }
 function toggleOffcuts(key,panelW,panelH,kerf){
@@ -919,8 +971,8 @@ const CM=8;
 
 function panelScale(panelW,panelH){return Math.min(600/panelW,420/panelH);}
 
-// hoverIdx: index of piece under cursor (-1 = none); flashIdx: piece to tint red
-function drawPanel(canvas,sheet,panelW,panelH,kerf,drag,hoverIdx=-1,flashIdx=-1){
+// hoverIdx: index of piece under cursor (-1 = none); flashIdx: piece to tint red; ghostPl: cross-canvas drag preview piece
+function drawPanel(canvas,sheet,panelW,panelH,kerf,drag,hoverIdx=-1,flashIdx=-1,ghostPl=null){
   const sc=panelScale(panelW,panelH);
   canvas._sc=sc; canvas._panelW=panelW; canvas._panelH=panelH; canvas._kerf=kerf;
   canvas.width=Math.round(panelW*sc)+CM*2;
@@ -967,7 +1019,7 @@ function drawPanel(canvas,sheet,panelW,panelH,kerf,drag,hoverIdx=-1,flashIdx=-1)
     const pw=Math.max(0,(pl.w-kerf)*sc),ph=Math.max(0,(pl.h-kerf)*sc);
     const px=CM+pl.x*sc,py=CM+pl.y*sc;
     ctx.save();
-    if(isDrag) ctx.globalAlpha=drag.valid?0.82:0.55;
+    if(isDrag) ctx.globalAlpha=drag.ghost?0.22:(drag.valid?0.82:0.55);
     if((isDrag&&!drag.valid)||isFlash){
       ctx.fillStyle='rgba(233,69,96,.55)';ctx.strokeStyle='#e94560';
     } else {
@@ -981,6 +1033,24 @@ function drawPanel(canvas,sheet,panelW,panelH,kerf,drag,hoverIdx=-1,flashIdx=-1)
     drawPieceLabel(ctx,px,py,pw,ph,pl.piece.name||'',dw,dh,pl.rotated);
     ctx.restore();
   });
+
+  // Ghost piece from cross-canvas drag
+  if(ghostPl){
+    const gpw=Math.max(0,(ghostPl.w-kerf)*sc),gph=Math.max(0,(ghostPl.h-kerf)*sc);
+    const gpx=CM+ghostPl.x*sc,gpy=CM+ghostPl.y*sc;
+    ctx.save();
+    ctx.globalAlpha=ghostPl.valid?0.65:0.35;
+    ctx.fillStyle=ghostPl.piece.color+'bb';
+    ctx.strokeStyle=ghostPl.valid?ghostPl.piece.color:'#e94560';
+    ctx.lineWidth=ghostPl.valid?1.5:2;
+    if(!ghostPl.valid) ctx.setLineDash([4,3]);
+    ctx.beginPath();ctx.roundRect(gpx,gpy,gpw,gph,2);ctx.fill();ctx.stroke();
+    ctx.setLineDash([]);
+    const gdw=ghostPl.rotated?ghostPl.piece.origH:ghostPl.piece.origW;
+    const gdh=ghostPl.rotated?ghostPl.piece.origW:ghostPl.piece.origH;
+    drawPieceLabel(ctx,gpx,gpy,gpw,gph,ghostPl.piece.name||'',gdw,gdh,ghostPl.rotated);
+    ctx.restore();
+  }
 
   // Rotate button on hovered piece
   if(hoverIdx>=0&&hoverIdx<sheet.placements.length&&!drag){
@@ -1049,104 +1119,245 @@ const tip=document.getElementById('tip');
 const showTip=(msg,x,y)=>{tip.textContent=msg;tip.style.left=(x+14)+'px';tip.style.top=(y+12)+'px';tip.style.display='block';};
 const hideTip=()=>tip.style.display='none';
 
-function setupDrag(canvas,sheet,panelW,panelH,kerf){
-  let drag=null, hoverIdx=-1, flashTimer=null;
+// Global cross-canvas drag state
+let xDrag=null;
 
-  const toP=(cx,cy)=>{const r=canvas.getBoundingClientRect();const sc=canvas._sc;return{px:(cx-r.left-CM)/sc,py:(cy-r.top-CM)/sc};};
-  const canvasXY=(e)=>{const r=canvas.getBoundingClientRect();return{mx:e.clientX-r.left,my:e.clientY-r.top};};
+// Convert client coords to panel coords on a given canvas
+function toPanelCoords(c,cx,cy){
+  const r=c.getBoundingClientRect();
+  return{px:(cx-r.left-CM)/c._sc,py:(cy-r.top-CM)/c._sc};
+}
+
+// Find the panel canvas (with ._key set) under client coords
+function panelCanvasAt(cx,cy){
+  const el=document.elementFromPoint(cx,cy);
+  return(el&&el.tagName==='CANVAS'&&el._key!==undefined)?el:null;
+}
+
+// Snap (nx,ny) toward edges of pieces and panel bounds; sc = canvas scale
+function snapPos(nx,ny,pw,ph,sheet,excludeIdx,sc){
+  const SNAP=8/sc;
+  let sx=nx,sy=ny,dx=SNAP+1,dy=SNAP+1;
+  const tryX=v=>{const d=Math.abs(nx-v);if(d<dx){dx=d;sx=v;}};
+  const tryY=v=>{const d=Math.abs(ny-v);if(d<dy){dy=d;sy=v;}};
+  tryX(0);tryX(sheet.W-pw);
+  tryY(0);tryY(sheet.H-ph);
+  sheet.placements.forEach((o,i)=>{
+    if(i===excludeIdx) return;
+    tryX(o.x);tryX(o.x+o.w);tryX(o.x-pw);tryX(o.x+o.w-pw);
+    tryY(o.y);tryY(o.y+o.h);tryY(o.y-ph);tryY(o.y+o.h-ph);
+  });
+  return{sx:Math.max(0,Math.min(sheet.W-pw,sx)),sy:Math.max(0,Math.min(sheet.H-ph,sy))};
+}
+
+// Overlap/bounds check: true if piece (pw×ph) at (nx,ny) fits without collisions
+function fitsOk(pw,ph,nx,ny,sheet,excludeIdx){
+  if(nx<0||ny<0||nx+pw>sheet.W||ny+ph>sheet.H) return false;
+  return!sheet.placements.some((o,i)=>
+    i!==excludeIdx&&nx<o.x+o.w&&nx+pw>o.x&&ny<o.y+o.h&&ny+ph>o.y
+  );
+}
+
+// Document-level handlers for the active drag ─────────────────────────────────
+function _docDragMove(e){
+  if(!xDrag) return;
+  const srcC=xDrag.srcCanvas;
+  const srcSheet=srcC._sheet;
+  const pl=srcSheet.placements[xDrag.plIdx];
+  const pw=pl.w,ph=pl.h;
+
+  const tgtC=panelCanvasAt(e.clientX,e.clientY);
+  const sameSrc=!tgtC||tgtC===srcC;
+
+  if(sameSrc){
+    const{px,py}=toPanelCoords(srcC,e.clientX,e.clientY);
+    const raw={nx:Math.round(px-xDrag.offX),ny:Math.round(py-xDrag.offY)};
+    const{sx,sy}=snapPos(raw.nx,raw.ny,pw,ph,srcSheet,xDrag.plIdx,srcC._sc);
+    pl.x=sx;pl.y=sy;
+    xDrag.valid=fitsOk(pw,ph,sx,sy,srcSheet,xDrag.plIdx);
+    xDrag.dropCanvas=srcC;xDrag.dropX=sx;xDrag.dropY=sy;
+    // Clear ghost on previous target if any
+    if(xDrag.lastTgt&&xDrag.lastTgt!==srcC){
+      const lt=xDrag.lastTgt;
+      drawPanel(lt,lt._sheet,lt._panelW,lt._panelH,lt._kerf,null,-1);
+    }
+    xDrag.lastTgt=srcC;
+    drawPanel(srcC,srcSheet,srcC._panelW,srcC._panelH,srcC._kerf,{idx:xDrag.plIdx,valid:xDrag.valid},-1);
+  } else {
+    const tgtSheet=tgtC._sheet;
+    const{px,py}=toPanelCoords(tgtC,e.clientX,e.clientY);
+    const raw={nx:Math.round(px-xDrag.offX),ny:Math.round(py-xDrag.offY)};
+    const{sx,sy}=snapPos(raw.nx,raw.ny,pw,ph,tgtSheet,-1,tgtC._sc);
+    const valid=fitsOk(pw,ph,sx,sy,tgtSheet,-1);
+    xDrag.dropCanvas=tgtC;xDrag.dropX=sx;xDrag.dropY=sy;xDrag.valid=valid;
+    // Ghost on source
+    drawPanel(srcC,srcSheet,srcC._panelW,srcC._panelH,srcC._kerf,{idx:xDrag.plIdx,valid:true,ghost:true},-1);
+    // Clear previous ghost target if different
+    if(xDrag.lastTgt&&xDrag.lastTgt!==tgtC&&xDrag.lastTgt!==srcC){
+      const lt=xDrag.lastTgt;
+      drawPanel(lt,lt._sheet,lt._panelW,lt._panelH,lt._kerf,null,-1);
+    }
+    xDrag.lastTgt=tgtC;
+    // Draw destination with floating preview piece
+    const ghostPl={x:sx,y:sy,w:pw,h:ph,piece:pl.piece,rotated:pl.rotated,valid};
+    drawPanel(tgtC,tgtSheet,tgtC._panelW,tgtC._panelH,tgtC._kerf,null,-1,-1,ghostPl);
+  }
+}
+
+function _docDragUp(e){
+  if(!xDrag) return;
+  document.removeEventListener('mousemove',_docDragMove);
+  document.removeEventListener('mouseup',_docDragUp);
+
+  const srcC=xDrag.srcCanvas;
+  const srcSheet=srcC._sheet;
+  // Clean up ghost on last target
+  if(xDrag.lastTgt&&xDrag.lastTgt!==srcC){
+    const lt=xDrag.lastTgt;
+    drawPanel(lt,lt._sheet,lt._panelW,lt._panelH,lt._kerf,null,-1);
+  }
+  const pl=srcSheet.placements[xDrag.plIdx];
+
+  if(xDrag.dropCanvas&&xDrag.dropCanvas!==srcC&&xDrag.valid){
+    // Cross-canvas drop — move piece
+    const tgtC=xDrag.dropCanvas;
+    const tgtSheet=tgtC._sheet;
+    const[removed]=srcSheet.placements.splice(xDrag.plIdx,1);
+    srcSheet.usedArea=srcSheet.placements.reduce((s,p)=>s+p.w*p.h,0);
+    srcSheet._edited=true;
+    removed.x=xDrag.dropX;removed.y=xDrag.dropY;
+    tgtSheet.placements.push(removed);
+    tgtSheet.usedArea=tgtSheet.placements.reduce((s,p)=>s+p.w*p.h,0);
+    tgtSheet._edited=true;
+    drawPanel(srcC,srcSheet,srcC._panelW,srcC._panelH,srcC._kerf,null,-1);
+    drawPanel(tgtC,tgtSheet,tgtC._panelW,tgtC._panelH,tgtC._kerf,null,-1);
+  } else {
+    // Same canvas — commit or revert
+    if(!xDrag.valid){pl.x=xDrag.origX;pl.y=xDrag.origY;}
+    else srcSheet._edited=true;
+    drawPanel(srcC,srcSheet,srcC._panelW,srcC._panelH,srcC._kerf,null,-1);
+  }
+  xDrag=null; hideTip();
+}
+
+function setupDrag(canvas,sheet,panelW,panelH,kerf,key,sheetIdx){
+  // Store metadata on canvas for cross-canvas access
+  canvas._sheet=sheet;
+  canvas._panelW=panelW;canvas._panelH=panelH;canvas._kerf=kerf;
+  canvas._key=key;canvas._sheetIdx=sheetIdx;
+
+  let hoverIdx=-1;
 
   const hitPiece=(px,py)=>{
     for(let i=sheet.placements.length-1;i>=0;i--){
       const p=sheet.placements[i];
       if(px>=p.x&&px<p.x+p.w&&py>=p.y&&py<p.y+p.h) return i;
     }
-    return -1;
-  };
-  const noOverlap=(idx,nx,ny)=>{
-    const p=sheet.placements[idx];
-    if(nx<0||ny<0||nx+p.w>sheet.W||ny+p.h>sheet.H) return false;
-    return !sheet.placements.some((o,i)=>i!==idx&&nx<o.x+o.w&&nx+p.w>o.x&&ny<o.y+o.h&&ny+p.h>o.y);
+    return-1;
   };
 
-  // Try to rotate piece at idx 90°; flash red if impossible
   const rotatePiece=(idx)=>{
     const pl=sheet.placements[idx];
-    // Always rotate — user can drag to a valid position afterwards
-    [pl.w, pl.h] = [pl.h, pl.w];
-    pl.rotated = !pl.rotated;
-    // Clamp within panel so piece stays reachable
-    pl.x = Math.max(0, Math.min(sheet.W - pl.w, pl.x));
-    pl.y = Math.max(0, Math.min(sheet.H - pl.h, pl.y));
-    sheet._edited = true;
-    drawPanel(canvas, sheet, panelW, panelH, kerf, null, hoverIdx);
+    [pl.w,pl.h]=[pl.h,pl.w];pl.rotated=!pl.rotated;
+    pl.x=Math.max(0,Math.min(sheet.W-pl.w,pl.x));
+    pl.y=Math.max(0,Math.min(sheet.H-pl.h,pl.y));
+    sheet._edited=true;
+    drawPanel(canvas,sheet,panelW,panelH,kerf,null,hoverIdx);
   };
 
-  // Right-click → rotate
   canvas.addEventListener('contextmenu',e=>{
     e.preventDefault();
-    const{px,py}=toP(e.clientX,e.clientY);
+    const{px,py}=toPanelCoords(canvas,e.clientX,e.clientY);
     const idx=hitPiece(px,py);
     if(idx>=0) rotatePiece(idx);
   });
 
   canvas.addEventListener('mousedown',e=>{
-    if(e.button!==0) return;
-    const{mx,my}=canvasXY(e);
-    const{px,py}=toP(e.clientX,e.clientY);
-    // Click on rotate button?
+    if(e.button!==0||xDrag) return;
+    const r=canvas.getBoundingClientRect();
+    const mx=e.clientX-r.left,my=e.clientY-r.top;
+    const{px,py}=toPanelCoords(canvas,e.clientX,e.clientY);
     if(hoverIdx>=0&&isOverRotBtn(mx,my,sheet.placements[hoverIdx],canvas._sc,kerf)){
-      rotatePiece(hoverIdx);
-      e.preventDefault(); return;
+      rotatePiece(hoverIdx);e.preventDefault();return;
     }
     const idx=hitPiece(px,py);
     if(idx<0) return;
     const pl=sheet.placements[idx];
-    drag={idx,origX:pl.x,origY:pl.y,offX:px-pl.x,offY:py-pl.y,valid:true};
-    canvas.style.cursor='grabbing'; e.preventDefault();
+    xDrag={
+      srcCanvas:canvas,plIdx:idx,
+      offX:px-pl.x,offY:py-pl.y,
+      origX:pl.x,origY:pl.y,
+      dropCanvas:canvas,dropX:pl.x,dropY:pl.y,
+      valid:true,lastTgt:null
+    };
+    canvas.style.cursor='grabbing';e.preventDefault();
+    document.addEventListener('mousemove',_docDragMove);
+    document.addEventListener('mouseup',_docDragUp);
   });
 
   canvas.addEventListener('mousemove',e=>{
-    const{px,py}=toP(e.clientX,e.clientY);
-    const{mx,my}=canvasXY(e);
-    if(drag){
-      const pl=sheet.placements[drag.idx];
-      const nx=Math.max(0,Math.min(sheet.W-pl.w,Math.round(px-drag.offX)));
-      const ny=Math.max(0,Math.min(sheet.H-pl.h,Math.round(py-drag.offY)));
-      pl.x=nx; pl.y=ny;
-      drag.valid=noOverlap(drag.idx,nx,ny);
-      drawPanel(canvas,sheet,panelW,panelH,kerf,drag,hoverIdx);
-    } else {
-      const newHover=hitPiece(px,py);
-      if(newHover!==hoverIdx){
-        hoverIdx=newHover;
-        drawPanel(canvas,sheet,panelW,panelH,kerf,null,hoverIdx);
-      }
-      // Cursor
-      if(hoverIdx>=0&&isOverRotBtn(mx,my,sheet.placements[hoverIdx],canvas._sc,kerf))
-        canvas.style.cursor='pointer';
-      else if(hoverIdx>=0)
-        canvas.style.cursor='grab';
-      else
-        canvas.style.cursor='default';
-      // Tooltip on free rect
-      if(hoverIdx<0&&showOffcuts&&!sheet._edited){
-        const frs=sheet.freeRects;
-        const fr=(Array.isArray(frs)?frs:[]).find(r=>px>=r.x&&px<r.x+r.w&&py>=r.y&&py<r.y+r.h);
-        if(fr) showTip(`${t('tipOffcut')} ${Math.round(fr.w-kerf)} × ${Math.round(fr.h-kerf)} mm`,e.clientX,e.clientY);
-        else hideTip();
-      } else hideTip();
+    if(xDrag) return; // handled globally
+    const{px,py}=toPanelCoords(canvas,e.clientX,e.clientY);
+    const r=canvas.getBoundingClientRect();
+    const mx=e.clientX-r.left,my=e.clientY-r.top;
+    const newHover=hitPiece(px,py);
+    if(newHover!==hoverIdx){
+      hoverIdx=newHover;
+      drawPanel(canvas,sheet,panelW,panelH,kerf,null,hoverIdx);
     }
+    if(hoverIdx>=0&&isOverRotBtn(mx,my,sheet.placements[hoverIdx],canvas._sc,kerf))
+      canvas.style.cursor='pointer';
+    else if(hoverIdx>=0) canvas.style.cursor='grab';
+    else canvas.style.cursor='default';
+    if(hoverIdx<0&&showOffcuts&&!sheet._edited){
+      const frs=sheet.freeRects;
+      const fr=(Array.isArray(frs)?frs:[]).find(r=>px>=r.x&&px<r.x+r.w&&py>=r.y&&py<r.y+r.h);
+      if(fr) showTip(`${t('tipOffcut')} ${Math.round(fr.w-kerf)} × ${Math.round(fr.h-kerf)} mm`,e.clientX,e.clientY);
+      else hideTip();
+    } else hideTip();
   });
 
-  const end=()=>{
-    if(!drag) return;
-    if(!drag.valid){sheet.placements[drag.idx].x=drag.origX;sheet.placements[drag.idx].y=drag.origY;}
-    else sheet._edited=true;
-    drag=null; canvas.style.cursor='default';
-    drawPanel(canvas,sheet,panelW,panelH,kerf,null,hoverIdx); hideTip();
-  };
-  canvas.addEventListener('mouseup',end);
-  canvas.addEventListener('mouseleave',()=>{hoverIdx=-1;end();hideTip();});
+  canvas.addEventListener('mouseleave',()=>{
+    if(!xDrag){hoverIdx=-1;drawPanel(canvas,sheet,panelW,panelH,kerf,null,-1);hideTip();}
+  });
+}
+
+// ─── Text modal ──────────────────────────────────────────────────────────────
+let _modalInputId=null,_modalCallback=null;
+
+function openTxtModal(labelKey,inputId,callback){
+  document.getElementById('modal-title').textContent=t(labelKey);
+  document.getElementById('modal-ok').textContent='OK';
+  document.getElementById('modal-ta').value=document.getElementById(inputId).value||'';
+  document.getElementById('txt-modal').style.display='flex';
+  document.getElementById('modal-ta').focus();
+  _modalInputId=inputId;_modalCallback=callback;
+}
+function saveTxtModal(){
+  if(_modalInputId){
+    document.getElementById(_modalInputId).value=document.getElementById('modal-ta').value;
+    if(_modalCallback) _modalCallback();
+  }
+  closeTxtModal();
+}
+function closeTxtModal(){
+  document.getElementById('txt-modal').style.display='none';
+  _modalInputId=null;_modalCallback=null;
+}
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&document.getElementById('txt-modal').style.display!=='none') closeTxtModal();
+  if(e.key==='Enter'&&e.ctrlKey&&document.getElementById('txt-modal').style.display!=='none') saveTxtModal();
+});
+
+function refreshMatDescBtn(){
+  const val=document.getElementById('proj-mat-desc').value||'';
+  document.getElementById('mat-desc-preview').textContent=
+    val?(val.length>40?val.slice(0,40)+'…':val):t('matDescEmpty');
+}
+function refreshCommentsBtn(){
+  const val=document.getElementById('proj-comments').value||'';
+  document.getElementById('comments-preview').textContent=
+    val?(val.length>40?val.slice(0,40)+'…':val):t('commentsEmpty');
 }
 
 // ─── Bon de débit export ─────────────────────────────────────────────────────
@@ -1162,14 +1373,13 @@ function exportBonDebit(){
     finish:document.getElementById('proj-finish').value,
     matDesc:document.getElementById('proj-mat-desc').value,
     matUrl:document.getElementById('proj-mat-url').value,
+    comments:document.getElementById('proj-comments').value,
   };
   const st=calcStats(r.sheets,panelW,panelH,kerf);
   const date=new Date().toLocaleDateString(lang==='fr'?'fr-FR':'en-GB');
   const ref=`${Date.now().toString(36).toUpperCase().slice(-6)}`;
 
-  // Build piece list (unique types × qty already in pieces)
   syncPieces();
-  const validPieces=pieces.filter(p=>p.w>0&&p.h>0&&p.qty>0);
 
   // Capture canvases as images
   const canvases=[...document.querySelectorAll('#panels-grid canvas')];
@@ -1192,18 +1402,23 @@ function exportBonDebit(){
     return{si,rows,eff:sh.efficiency.toFixed(1)};
   });
 
-  // Piece list table rows
-  const pieceRows=validPieces.map((p,i)=>
-    `<tr>
-      <td>${i+1}</td>
-      <td>${p.name||'—'}</td>
-      <td>${p.w}</td>
-      <td>${p.h}</td>
-      <td>${proj.thickness}</td>
-      <td>${p.qty}</td>
-      <td></td>
-      <td></td>
-    </tr>`
+  // Piece list table rows — one row per individual cut piece with panel assignment
+  let rowNum=0;
+  const pieceRows=r.sheets.flatMap((sh,si)=>
+    sh.placements.map(pl=>{
+      rowNum++;
+      const cutW=pl.rotated?pl.piece.origH:pl.piece.origW;
+      const cutH=pl.rotated?pl.piece.origW:pl.piece.origH;
+      return`<tr>
+        <td>${rowNum}</td>
+        <td><span class="color-dot" style="background:${pl.piece.color}"></span>${pl.piece.name||'—'}</td>
+        <td>${cutW}</td><td>${cutH}</td>
+        <td>${proj.thickness}</td>
+        <td>${t('bonPanelLabel')} ${si+1}</td>
+        <td>${pl.rotated?'↺ '+t('bonRotated'):'—'}</td>
+        <td></td>
+      </tr>`;
+    })
   ).join('');
 
   const algoName=t(ALGOS[activeAlgo].lk);
@@ -1291,13 +1506,15 @@ function exportBonDebit(){
   <div class="stat-box"><div class="sv">${st.waste} m²</div><div class="sl">${t('statWaste')}</div></div>
 </div>
 
+${proj.comments?`<div class="note"><b>${t('bonComments')} :</b><br><span style="white-space:pre-wrap">${proj.comments.replace(/</g,'&lt;')}</span></div>`:''}
+
 <h2>${t('bonListTitle')}</h2>
 <table>
   <thead><tr>
     <th>${t('bonNum')}</th><th>${t('bonName')}</th>
     <th>${t('bonL')} (mm)</th><th>${t('bonW')} (mm)</th>
-    <th>${t('bonThk')} (mm)</th><th>${t('bonQty')}</th>
-    <th>Chant L1</th><th>${t('bonObs')}</th>
+    <th>${t('bonThk')} (mm)</th><th>${t('bonPanelLabel')}</th>
+    <th>Rotation</th><th>${t('bonObs')}</th>
   </tr></thead>
   <tbody>${pieceRows}</tbody>
 </table>
@@ -1336,6 +1553,8 @@ ${panelBreakdown.map(({si,rows,eff,img},i)=>`
 renderPresets();
 updateArea();
 loadExample();
+refreshMatDescBtn();
+refreshCommentsBtn();
 document.getElementById('pW').addEventListener('input',updateArea);
 document.getElementById('pH').addEventListener('input',updateArea);
 </script>
