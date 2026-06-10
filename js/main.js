@@ -65,9 +65,9 @@ function switchLang(l) {
 
 // ─── Auto-save triggers ───────────────────────────────────────────────────────
 function watchAutosave() {
-  // Trigger autosave on any input change in the sidebar
   document.querySelector('.sidebar').addEventListener('input', scheduleAutosave);
   document.getElementById('noRotate').addEventListener('change', scheduleAutosave);
+  document.addEventListener('dcb:changed', scheduleAutosave);
 }
 
 // ─── Keyboard shortcuts for modal ────────────────────────────────────────────

@@ -108,14 +108,27 @@ function _docUp() {
     tgtSheet._edited = true;
     drawPanel(srcC, srcSheet, srcC._panelW, srcC._panelH, srcC._kerf, null, -1);
     drawPanel(tgtC, tgtSheet, tgtC._panelW, tgtC._panelH, tgtC._kerf, null, -1);
+    _updatePanelHeader(srcC, srcSheet);
+    _updatePanelHeader(tgtC, tgtSheet);
+    document.dispatchEvent(new CustomEvent('dcb:changed'));
   } else {
     // Same-canvas or invalid — commit or revert
     if (!S.xDrag.valid) { pl.x = S.xDrag.origX; pl.y = S.xDrag.origY; }
-    else srcSheet._edited = true;
+    else { srcSheet._edited = true; document.dispatchEvent(new CustomEvent('dcb:changed')); }
     drawPanel(srcC, srcSheet, srcC._panelW, srcC._panelH, srcC._kerf, null, -1);
   }
   S.xDrag = null;
   hideTip();
+}
+
+// Update the panel header div (efficiency % + piece count) without full re-render
+function _updatePanelHeader(canvas, sheet) {
+  const ph = canvas.parentElement?.querySelector('.ph');
+  if (!ph) return;
+  const cards = [...document.querySelectorAll('#panels-grid .panel-card')];
+  const idx = cards.indexOf(canvas.parentElement);
+  if (idx < 0) return;
+  ph.innerHTML = `<span>${t('statPanels')} ${idx+1}/${cards.length}</span><span>${sheet.efficiency.toFixed(1)}% · ${sheet.placements.length} ${t('pcs')}</span>`;
 }
 
 function _clearLastGhost(exceptCanvas) {
