@@ -24,12 +24,17 @@
 - **Optimisation par relances aléatoires** — 12 permutations testées pour trouver la meilleure disposition
 - **Rotation automatique** des pièces pour améliorer le rendement (désactivable)
 - **Rotation manuelle** — bouton ↻ au survol ou clic droit sur une pièce
-- **Glisser-déposer** des pièces pour ajustement manuel
+- **Glisser-déposer** des pièces pour ajustement manuel, avec **magnétisme** (accrochage aux bords du panneau et aux autres pièces)
+- **Déplacement entre panneaux** — une pièce peut être glissée d'un panneau vers un autre
+- **Ajout / suppression de panneaux vides** pour organiser manuellement la répartition
 - **Affichage des chutes** avec dimensions, hachures et tooltip au survol
 - **Tailles de panneaux personnalisées** sauvegardées localement
-- **Import / Export CSV** de la liste des pièces
+- **Import / Export CSV** de la liste des pièces (le CSV inclut les dimensions du panneau)
+- **Sauvegarde automatique** — la session est restaurée au rechargement de la page
 - **Sauvegarde / Chargement** du projet complet en JSON
-- **Export Bon de débit** — document A4 imprimable compatible scieries françaises (Gedibois, etc.) avec plans visuels, liste des pièces et référence matériau avec lien produit
+- **Description matériau** étendue (champ texte libre) et lien produit URL
+- **Commentaires** ajoutables au bon de débit
+- **Export Bon de débit** — ouvre directement la boîte d'impression, document A4 avec liste individuelle de chaque coupe, plans visuels par panneau, commentaires et référence matériau
 - **Interface FR / EN**
 
 ### Utilisation
@@ -37,8 +42,8 @@
 1. Renseigner les dimensions du panneau standard (ex : 2440 × 1220 mm)
 2. Ajouter les pièces à découper (nom, largeur, hauteur, quantité)
 3. Cliquer sur **Optimiser la découpe**
-4. Comparer les 4 stratégies et ajuster manuellement si besoin
-5. Exporter le **Bon de débit** pour votre scierie
+4. Comparer les 4 stratégies, ajuster manuellement (glisser, faire pivoter, déplacer entre panneaux)
+5. Cliquer sur **Bon de débit** pour lancer directement l'impression / export PDF
 
 ### Lancer en local
 
@@ -65,12 +70,17 @@ python3 -m http.server 8080
 - **Randomized restart optimization** — 12 permutations tested to find the best layout
 - **Automatic rotation** of pieces to improve efficiency (can be disabled)
 - **Manual rotation** — ↻ button on hover or right-click on any piece
-- **Drag & drop** pieces for manual fine-tuning
+- **Drag & drop** pieces for manual fine-tuning, with **snapping** to panel edges and other pieces
+- **Cross-panel dragging** — move a piece from one panel to another by dragging
+- **Add / remove empty panels** to manually control piece distribution
 - **Offcut display** with dimensions, hatching and hover tooltip
 - **Custom panel sizes** saved locally in the browser
-- **CSV import / export** of the piece list
+- **CSV import / export** of the piece list (panel dimensions are included in the CSV)
+- **Auto-save** — the session is restored when the page is reloaded
 - **Project save / load** as JSON
-- **Cutting order export** — printable A4 document compatible with panel cutting services, including visual layouts, piece list, and material reference with product link
+- **Extended material description** (free text field) and product URL
+- **Comments** that appear in the cutting order export
+- **Cutting order export** — opens the system print dialog directly, A4 document with individual cut list, per-panel visual layouts, comments, and material reference
 - **FR / EN interface**
 
 ### Usage
@@ -78,8 +88,8 @@ python3 -m http.server 8080
 1. Set your standard panel dimensions (e.g. 2440 × 1220 mm)
 2. Add pieces to cut (name, width, height, quantity)
 3. Click **Optimize cutting**
-4. Compare the 4 strategies and adjust manually if needed
-5. Export the **cutting order** for your supplier
+4. Compare the 4 strategies, adjust manually (drag, rotate, move between panels)
+5. Click **Cutting order** to open the print / PDF dialog immediately
 
 ### Run locally
 
